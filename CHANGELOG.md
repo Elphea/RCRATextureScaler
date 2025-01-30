@@ -1,5 +1,12 @@
 ﻿# Change Log
 
+
+
+## 1.0.0
+- Added 1.3.3 functionality from SpideyTextureScaler due to crash issue in RCRA uses (unknown if crashing in Spider games).
+
+## RCRATextureScaler Starts from here
+
 ## 1.3.1
 
 ### Fixed
