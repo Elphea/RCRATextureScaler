@@ -18,13 +18,13 @@ namespace RCRATextureScaler
         public Source()
         {
             Name = "Source";
-            textureIds = new();
-
-
-            // Adding Spiderman Magic Value
-            textureIds.Add(0xB980455C);
-            // Adding RCRA Magic Value
-            textureIds.Add(0x99A1538F);
+            textureIds = new()
+            {
+                // Adding Spiderman Magic Value
+                0x5C4580B9,
+                // Adding RCRA Magic Value
+                0x8F53A199
+            };
         }
 
         public override bool Read(out string output, out int errorrow, out int errorcol)
@@ -39,7 +39,7 @@ namespace RCRATextureScaler
             if (!textureIds.Contains(br.ReadUInt32()) ||
                 fs.Seek(32, SeekOrigin.Current) < 1 ||
                 br.ReadUInt32() != 1145132081 ||
-                textureIds.Contains(br.ReadUInt32()))
+                !textureIds.Contains(br.ReadUInt32()))
             {
                 output += "Not a texture asset.  Please import the lowest resolution copy.\r\n";
                 errorcol = 1;
