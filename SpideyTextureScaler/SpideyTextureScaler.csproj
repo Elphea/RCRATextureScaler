@@ -13,8 +13,7 @@
     <FileVersion>1.0.0</FileVersion>
     <AssemblyVersion>1.0.0</AssemblyVersion>
     <StartupObject>RCRATextureScaler.Program</StartupObject>
-    <ApplicationIcon>Icon1.ico</ApplicationIcon>
-    <NoWin32Manifest>true</NoWin32Manifest>
+    <ApplicationIcon>Resources/Icon1.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -24,10 +23,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebugType>embedded</DebugType>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Content Include="Icon1.ico" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
