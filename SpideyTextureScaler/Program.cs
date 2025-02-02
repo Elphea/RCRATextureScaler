@@ -7,7 +7,7 @@ namespace RCRATextureScaler
 {
     public class Program
     {
-        public List<TextureBase> texturestats { get; set; }
+        public List<TextureBase> texturestats { get; set; } = new List<TextureBase>();
 
         [STAThread]
         static int Main(string[] args)
@@ -40,14 +40,14 @@ namespace RCRATextureScaler
             AttachConsole(ATTACH_PARENT_PROCESS);
             Console.WriteLine("\r\n");
 
-            var rootcommand = new RootCommand($"(v{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}) Extract or replace textures.  See \"[command] --help\" for additional options.");
+            var rootcommand = new RootCommand($"(v{Assembly.GetExecutingAssembly().GetName().Version!.ToString(3)}) Extract or replace textures.  See \"[command] --help\" for additional options.");
             // global
             var outputdir = new Option<DirectoryInfo?>(name: "--outputdir", description: "Output directory for generated files");
             outputdir.AddAlias("-o");
             rootcommand.AddGlobalOption(outputdir);
             // extract
             var source = new Argument<FileInfo?>(name: "source", "Source .texture file from the game");
-            source.AddValidator(result => { if (!result.GetValueForArgument(source).Exists) result.ErrorMessage = "Source file not found"; });
+            source.AddValidator(result => { if (!result.GetValueForArgument(source)!.Exists) result.ErrorMessage = "Source file not found"; });
             var allowsd = new Option<bool>("--allowsd", "Allow standard definition exports if the .hd.texture file is missing");
             var extractcommand = new Command("extract", "Extract .dds texture from input .texture/.hd.texture pairs.")
             {
@@ -57,7 +57,7 @@ namespace RCRATextureScaler
             rootcommand.AddCommand(extractcommand);
             // replace
             var ddsfile = new Argument<FileInfo?>(name: "ddsfile", description: "Texture file in .dds format");
-            ddsfile.AddValidator(result => { if (!result.GetValueForArgument(ddsfile).Exists) result.ErrorMessage = "DDS texture file not found"; });
+            ddsfile.AddValidator(result => { if (!result.GetValueForArgument(ddsfile)!.Exists) result.ErrorMessage = "DDS texture file not found"; });
             var ignoreformat = new Option<bool>("--ignoreformat", "Ignore DXGI format mismatches");
             var testmode = new Option<bool>("--testmode", "Replace only HD mipmaps");
             var extrasd = new Option<uint>("--extrasd", "Maximum number of mipmaps to move from .hd.texture to .texture");
@@ -72,8 +72,8 @@ namespace RCRATextureScaler
             };
             rootcommand.AddCommand(replacecommand);
 
-            extractcommand.SetHandler((source, outputdir, allowsd) => { Extract(source, outputdir, allowsd); }, source, outputdir, allowsd);
-            replacecommand.SetHandler((source, ddsfile, outputdir, extrasd, ignoreformat, testmode) => { Replace(source, ddsfile, outputdir, extrasd, ignoreformat, testmode); }, source, ddsfile, outputdir, extrasd, ignoreformat, testmode);
+            extractcommand.SetHandler((source, outputdir, allowsd) => { Extract(source!, outputdir, allowsd); }, source, outputdir, allowsd);
+            replacecommand.SetHandler((source, ddsfile, outputdir, extrasd, ignoreformat, testmode) => { Replace(source!, ddsfile!, outputdir, extrasd, ignoreformat, testmode); }, source, ddsfile, outputdir, extrasd, ignoreformat, testmode);
             var ret = rootcommand.Invoke(args);
             FreeConsole();
             return ret;
@@ -95,7 +95,7 @@ namespace RCRATextureScaler
             outputdir = outputdirInfo?.FullName ?? "";
             string output;
             int errorrow;
-            int errorcol;
+            string errorcol;
             var source = (Source)texturestats[0];
             source.Filename = sourceInfo.FullName;
             source.Read(out output, out errorrow, out errorcol);
@@ -114,12 +114,12 @@ namespace RCRATextureScaler
             var tex = (Source)texturestats[0];
             var savedds = new DDS();
             savedds.Filename = Path.ChangeExtension(tex.Filename, ".dds");
-            savedds.Filename = outputdir != "" ? Path.Combine(outputdir, Path.GetFileName(savedds.Filename)) : savedds.Filename;
+            savedds.Filename = outputdir != "" ? Path.Combine(outputdir, Path.GetFileName(savedds.Filename)!) : savedds.Filename;
             savedds.Mipmaps = tex.Mipmaps;
             savedds.ArrayCount = tex.ArrayCount;
             savedds.Format = tex.Format;
             savedds.basemipsize = tex.basemipsize;
-            byte[] hdmips = null;
+            byte[]? hdmips = null;
             string output;
 
             savedds.HDMipmaps = 0;
@@ -142,7 +142,7 @@ namespace RCRATextureScaler
                 }
             }
 
-            if (!savedds.Write(hdmips, tex.mipmaps, out output))
+            if (!savedds.Write(hdmips!, tex.mipmaps, out output))
             {
                 Console.WriteLine(output);
                 throw new Exception("Extraction failed");
@@ -160,7 +160,7 @@ namespace RCRATextureScaler
 
             string output;
             int errorrow;
-            int errorcol;
+            string errorcol;
             var dds = (DDS)texturestats[1];
             dds.Filename = ddsInfo.FullName;
             if (tex.ArrayCount > 1 && !dds.Filename.ToLower().EndsWith(".a0.dds"))
@@ -171,7 +171,7 @@ namespace RCRATextureScaler
                 throw new Exception("Problem with DDS file");
 
             var ddss = new List<DDS>() { dds };
-            var stub = ddss[0].Filename.Substring(0, ddss[0].Filename.Length - ".a0.dds".Length);
+            var stub = ddss[0].Filename!.Substring(0, ddss[0].Filename!.Length - ".a0.dds".Length);
             for (int i = 1; i < tex.ArrayCount; i++)
             {
                 ddss.Add(new DDS());
@@ -200,7 +200,7 @@ namespace RCRATextureScaler
                 out output, out errorrow, out errorcol);
 
             Console.WriteLine(output);
-            if (errorcol > -1)
+            if (errorcol != "")
                 throw new Exception("Error writing output texture");
         }
     }
@@ -210,16 +210,16 @@ namespace RCRATextureScaler
         // grid display fields
         public string? Name { get; set; }
         public bool Ready { get; set; }
-        public uint? Width { get; set; }
-        public uint? Height { get; set; }
-        public uint? Mipmaps { get; set; }
-        public uint? HDMipmaps { get; set; }
-        public double? BytesPerPixel { get; set; }
-        public uint? ArrayCount { get; set;  }
-        public uint? Cubemaps { get; set; }
-        public uint? Images { get { return ArrayCount * (Cubemaps ?? 1); } }
-        public uint? Size { get; set; }
-        public uint? HDSize { get; set; }
+        public uint Width { get; set; }
+        public uint Height { get; set; }
+        public uint Mipmaps { get; set; }
+        public uint HDMipmaps { get; set; }
+        public double BytesPerPixel { get; set; }
+        public uint ArrayCount { get; set;  }
+        public uint Cubemaps { get; set; }
+        public uint Images { get { return ArrayCount * (Cubemaps <= 0 ? 1 : Cubemaps); } }
+        public uint Size { get; set; }
+        public uint HDSize { get; set; }
         public DXGI_FORMAT? Format { get; set; }
 
         // display
@@ -233,16 +233,16 @@ namespace RCRATextureScaler
 
         public const string defaultfilelabel = "Choose a file...";
 
-        public abstract bool Read(out string output, out int errorrow, out int errorcol);
+        public abstract bool Read(out string output, out int errorrow, out string errorcol);
         public void ResetVisible()
         {
-            Width = null;
-            Height = null;
-            Mipmaps = null;
-            HDMipmaps = null;
-            BytesPerPixel = null;
-            Size = null;
-            HDSize = null;
+            Width = 0;
+            Height = 0;
+            Mipmaps = 0;
+            HDMipmaps = 0;
+            BytesPerPixel = 0;
+            Size = 0;
+            HDSize = 0;
             Format = null;
             Ready = false;
             Filename = defaultfilelabel;
@@ -253,7 +253,7 @@ namespace RCRATextureScaler
             // avoid float errors
             int divisor = 0, multiplier = 1;
             bool compressed = true;
-            switch (((ushort)Format, (ushort)Format))
+            switch (((ushort)Format!, (ushort)Format))
             {
                 // BC1
                 case ( >= 70, <= 72):
@@ -315,7 +315,7 @@ namespace RCRATextureScaler
             if (divisor == 0)
                 return 0;
 
-            basemipsize = (int)((Height ?? 0) * (Width ?? 0) * multiplier / divisor);
+            basemipsize = (int)((Height) * (Width) * multiplier / divisor);
             int expectedsize = 0;
             int minmipsize = compressed ? 16 / divisor : 0;
             BytesPerPixel = minmipsize / 16;

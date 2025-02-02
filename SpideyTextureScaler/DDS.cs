@@ -15,67 +15,72 @@ namespace RCRATextureScaler
             Name = "Modded";
         }
 
-        public override bool Read(out string output, out int errorrow, out int errorcol)
+        public override bool Read(out string output, out int errorrow, out string errorcol)
         {
             output = "";
             errorrow = 1;
-            errorcol = -1;
+            errorcol = "";
 
-            using (var fs = File.Open(Filename, FileMode.Open, FileAccess.Read))
-            using (BinaryReader br = new BinaryReader(fs))
+            if(Filename == null)
             {
-                if (br.ReadUInt32() != 542327876)
-                {
-                    output += "Not a DDS file\r\n";
-                    errorcol = 1;
-                    return false;
-                }
-
-                var flags = (DDS_Flags) br.ReadUInt32();
-
-                br.ReadUInt32();
-                Height = br.ReadUInt32();
-                Width = br.ReadUInt32();
-                if (Height * Width == 0 ||
-                    // power of 2 trick
-                    (Height & (Height - 1)) != 0 ||
-                    (Width & (Width - 1)) != 0)
-                {
-                    output += "Texture widths and heights must be a power of 2\r\n";
-                    errorcol = 2;
-                    return false;
-                }
-                aspect = (int)(Math.Log((double)Width / (double)Height) / Math.Log(2));
-
-                // avoid Microsoft's pitch / linearsize screw-up
-                br.ReadUInt32();
-
-                // depth
-                br.ReadUInt32();
-                Mipmaps = br.ReadUInt32();
-
-                fs.Seek(0x54, SeekOrigin.Begin);
-                bool hasDX10Header = br.ReadUInt32() == 808540228;
-                fs.Seek(0x80, SeekOrigin.Begin);
-
-                if (hasDX10Header)
-                {
-                    Format = (DXGI_FORMAT?)br.ReadUInt32();
-                    fs.Seek(0x94, SeekOrigin.Begin);
-                }
-
-                dataoffset = fs.Position;
-
-                // calculate based on remaining data
-                Size = (uint)(fs.Length - fs.Position);
-                int maxmipexp = (int)Math.Floor(Math.Log((double)Size) / Math.Log(2));
-                basemipsize = 1 << maxmipexp;
-                BytesPerPixel = (float)basemipsize / Width / Height;
-
-                output += $"DDS loaded\r\n";
-                Ready = true;
-                return true;
+                output += "Unexpected error occured. Please contact on Discord immediately.";
+                errorcol = "Unexpected error, contact on Discord";
+                return false;
             }
+
+            using var fs = File.Open(Filename, FileMode.Open, FileAccess.Read);
+            using BinaryReader br = new BinaryReader(fs);
+            if (br.ReadUInt32() != 542327876)
+            {
+                output += "Not a DDS file\r\n";
+                errorcol = "Not a DDS file";
+                return false;
+            }
+
+            var flags = (DDS_Flags)br.ReadUInt32();
+
+            br.ReadUInt32();
+            Height = br.ReadUInt32();
+            Width = br.ReadUInt32();
+            if (Height * Width == 0 ||
+                // power of 2 trick
+                (Height & (Height - 1)) != 0 ||
+                (Width & (Width - 1)) != 0)
+            {
+                output += "Texture widths and heights must be a power of 2\r\n";
+                errorcol = "Texture widths and heights must be a power of 2";
+                return false;
+            }
+            aspect = (int)(Math.Log((double)Width / (double)Height) / Math.Log(2));
+
+            // avoid Microsoft's pitch / linearsize screw-up
+            br.ReadUInt32();
+
+            // depth
+            br.ReadUInt32();
+            Mipmaps = br.ReadUInt32();
+
+            fs.Seek(0x54, SeekOrigin.Begin);
+            bool hasDX10Header = br.ReadUInt32() == 808540228;
+            fs.Seek(0x80, SeekOrigin.Begin);
+
+            if (hasDX10Header)
+            {
+                Format = (DXGI_FORMAT?)br.ReadUInt32();
+                fs.Seek(0x94, SeekOrigin.Begin);
+            }
+
+            dataoffset = fs.Position;
+
+            // calculate based on remaining data
+            Size = (uint)(fs.Length - fs.Position);
+            int maxmipexp = (int)Math.Floor(Math.Log((double)Size) / Math.Log(2));
+            basemipsize = 1 << maxmipexp;
+            BytesPerPixel = (float)basemipsize / Width / Height;
+
+            output += $"DDS loaded\r\n";
+            Ready = true;
+            return true;
         }
 
         public bool Write(byte[] hdmipmaps, List<byte[]> mipmaps, out string output)
@@ -86,11 +91,11 @@ namespace RCRATextureScaler
                 bool ret = false;
                 for (int i = 0; i < ArrayCount; i++)
                 {
-                    string o2;
+                    byte[] hdmipmaps1 = hdmipmaps.Skip(i * hdmipmaps.Length / (int)ArrayCount).Take(hdmipmaps.Length / (int)ArrayCount).ToArray();
                     ret |= WriteSingle(
-                        hdmipmaps is null ? null : hdmipmaps.Skip(i * hdmipmaps.Length / (int)ArrayCount).Take(hdmipmaps.Length / (int)ArrayCount).ToArray(),
+                        hdmipmaps1,
                         mipmaps.Skip(i * mipmaps.Count / (int)ArrayCount).Take(mipmaps.Count / (int)ArrayCount).ToList(),
-                        i, out o2);
+                        i, out string o2);
                     output += o2;
                 }
                 output += "\r\n";
@@ -104,7 +109,12 @@ namespace RCRATextureScaler
         {
             // just assume everything has been set correctly!
             output = "";
+            if (Filename == null)
+            {
+                return false;
+            }
             string fn = Filename;
+
             if (image > -1)
                 fn = Path.ChangeExtension(fn, $".A{image}.dds");
 
@@ -117,7 +127,7 @@ namespace RCRATextureScaler
                 bw.Write((uint)Height);
                 bw.Write((uint)Width);
                 // linearsize
-                bw.Write((uint)((hdmipmaps is null ? basemipsize: basemipsize * 1 << (2 * (int)HDMipmaps)) / Cubemaps));
+                bw.Write((uint)((hdmipmaps == null ? basemipsize: basemipsize * 1 << (2 * (int)HDMipmaps)) / Cubemaps));
                 // depth
                 bw.Write((uint)0);
                 bw.Write((uint)((uint)Mipmaps + (uint)HDMipmaps));
@@ -139,7 +149,7 @@ namespace RCRATextureScaler
                 bw.Write(new byte[3 * 4]);
 
                 // DXT10 header
-                bw.Write((uint)Format);
+                bw.Write((uint)Format!);
                 // dimension - 2d or 3d
                 bw.Write((uint)(Height > 1 ? 3 : 2));
                 // misc

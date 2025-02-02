@@ -10,8 +10,8 @@
     <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
     <PackageIcon>icon.png</PackageIcon>
     <AssemblyName>RCRATextureScaler</AssemblyName>
-    <FileVersion>1.0.0</FileVersion>
-    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0</FileVersion>
+    <AssemblyVersion>1.1.0</AssemblyVersion>
     <StartupObject>RCRATextureScaler.Program</StartupObject>
     <ApplicationIcon>Resources/Icon1.ico</ApplicationIcon>
   </PropertyGroup>

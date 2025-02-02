@@ -8,12 +8,13 @@ namespace RCRATextureScaler
 {
     internal class Source : TextureBase
     {
-        public byte[] header;
-        public byte[] textureheader;
-        public List<byte[]> mipmaps;
-        public string hdfilename;
+        public byte[] header = Array.Empty<byte>();
+        public bool STG = false;
+        public byte[] textureheader = Array.Empty<byte>();
+        public List<byte[]> mipmaps = new();
+        public string hdfilename = "";
         public bool exportable;
-        private List<uint> textureIds;
+        private readonly List<uint> textureIds;
 
         public Source()
         {
@@ -27,106 +28,138 @@ namespace RCRATextureScaler
             };
         }
 
-        public override bool Read(out string output, out int errorrow, out int errorcol)
+        public override bool Read(out string output, out int errorrow, out string errorcol)
         {
             output = "";
             errorrow = 0;
-            errorcol = -1;
+            errorcol = "";
             exportable = false;
 
-            using var fs = File.Open(Filename, FileMode.Open, FileAccess.Read);
-            using BinaryReader br = new BinaryReader(fs);
-            if (!textureIds.Contains(br.ReadUInt32()) ||
+            using var fs = File.Open(Filename!, FileMode.Open, FileAccess.Read);
+            BinaryReader br = new(fs);
+
+            if(br.ReadUInt32() == 4674643)
+            {
+                STG = true;
+                fs.Seek(16, SeekOrigin.Begin);
+            }
+            else
+            {
+                fs.Seek(0, SeekOrigin.Begin);
+            }
+
+            if(STG)
+            {
+                if (!textureIds.Contains(br.ReadUInt32()) ||
+                fs.Seek(92, SeekOrigin.Current) < 1 ||
+                br.ReadUInt32() != 1145132081 ||
+                !textureIds.Contains(br.ReadUInt32()))
+                {
+                    output += "Not a texture asset.  Please import the lowest resolution copy.\r\n";
+                    errorcol = "This STG header texture asset is not correctly formatted. If correct, please contact on Discord";
+                    return false;
+                }
+                ;
+            }
+            else
+            {
+                if (!textureIds.Contains(br.ReadUInt32()) ||
                 fs.Seek(32, SeekOrigin.Current) < 1 ||
                 br.ReadUInt32() != 1145132081 ||
                 !textureIds.Contains(br.ReadUInt32()))
-            {
-                output += "Not a texture asset.  Please import the lowest resolution copy.\r\n";
-                errorcol = 1;
-                return false;
+                {
+                    output += "Not a texture asset.  Please import the lowest resolution copy.\r\n";
+                    errorcol = "This is not a texture asset. Please import the lowest resolution copy";
+                    return false;
+                }
+                ;
             }
-            ;
 
             br.ReadUInt32();
             if (br.ReadUInt32() != 1)
             {
                 output += "Multiple sections not implemented.  Woops\r\n";
-                errorcol = 1;
+                errorcol = "Multiple sections not implemented.";
                 return false;
             }
 
             if (br.ReadUInt32() != 1323185555)
             {
                 output += "Unexpected section type\r\n";
-                errorcol = 1;
+                errorcol = "Section type unknown";
                 return false;
             }
             var offset = br.ReadUInt32();
             var size = br.ReadUInt32();
 
             fs.Seek(0, SeekOrigin.Begin);
-            header = br.ReadBytes((int)offset + 36);
+            if(STG)
+            {
+                header = br.ReadBytes((int)offset + 52);
+            }
+            else
+            {
+                header = br.ReadBytes((int)offset + 36);
+            }
+            
             textureheader = br.ReadBytes((int)size);
 
-            fs.Seek((int)offset + 36, SeekOrigin.Begin);
+            if(STG)
+            {
+                fs.Seek((int)offset + 112, SeekOrigin.Begin);
+            }
+            else
+            {
+                fs.Seek((int)offset + 36, SeekOrigin.Begin);
+            }
             Size = br.ReadUInt32();
             HDSize = br.ReadUInt32();
-            HDMipmaps = 0;
-            Mipmaps = 0;
             Width = br.ReadUInt16();
             Height = br.ReadUInt16();
             sd_width = br.ReadUInt16();
             sd_height = br.ReadUInt16();
-            Images = br.ReadUInt16();
-
-            int s = (int)(HDSize / Images);
-            int maxmipexp = (int)Math.Floor(Math.Log(s) / Math.Log(2));
-            if (HDSize > 0)
-            {
-                for (int i = maxmipexp; s >= 1 << i && (s & (1 << i)) > 0; i -= 2)
-                {
-                    HDMipmaps++;
-                    s -= 1 << i;
-                }
-            }
-
-            s = (int)(Size / Images);
-            maxmipexp = (int)Math.Floor(Math.Log(s) / Math.Log(2));
-            basemipsize = 1 << maxmipexp;
-            for (int i = maxmipexp; s >= 1 << i && (s & (1 << i)) > 0; i -= 2)
-            {
-                Mipmaps++;
-                s -= 1 << i;
-            }
-
-            BytesPerPixel = Math.Pow(2, (Math.Floor(Math.Log((double)basemipsize / sd_width / sd_height) / Math.Log(2))));
-            aspect = (int)(Math.Log((double)Width / (double)Height) / Math.Log(2));
-
+            ArrayCount = br.ReadUInt16();
             br.ReadByte();
             var channels = br.ReadByte();
             var dxgi_format = br.ReadUInt16();
             Format = (DXGI_FORMAT?)dxgi_format;
             br.ReadBytes(8);
-            if (Mipmaps != br.ReadByte())
+
+            Mipmaps = br.ReadByte();
+            br.ReadByte();
+            HDMipmaps = br.ReadByte();
+            Cubemaps = 1;
+            int expectedsize = CalculateExpectedSize();
+            if (expectedsize == 0)
+                br.ReadByte();
+
+            if (expectedsize == 0)
             {
-                output += "Mipmap count discrepancy\r\n";
-                errorcol = 4;
+                output += $"Support for DXGI format not implemented: {Format}\r\n";
+                errorcol = "This DXGI format is not supported";
                 return false;
             }
             br.ReadByte();
-            if (HDMipmaps != br.ReadByte())
+            if (expectedsize * ArrayCount != (HDSize + Size)    )
             {
-                output += "HDMipmap count discrepancy\r\n";
-                errorcol = 5;
-                return false;
+                if (expectedsize * ArrayCount * 6 == (HDSize + Size))
+                    Cubemaps = 6;
+                else
+                {
+                    output += "Image data size does not match expected\r\n";
+                    errorcol = "Image data size does not match expected";
+                    return false;
+                }
             }
+
+            aspect = (int)(Math.Log((double)Width / (double)Height) / Math.Log(2));
 
             fs.Seek(11, SeekOrigin.Current);
             mipmaps = new();
             for (int i = 0; i < Images; i++)
                 mipmaps.Add(br.ReadBytes((int)(Size / Images)));
 
-            hdfilename = Path.ChangeExtension(Filename, ".hd.texture");
+            hdfilename = Path.ChangeExtension(Filename, ".hd.texture")!;
             string hdtxt;
             if (HDSize == 0)
             {
@@ -135,7 +168,7 @@ namespace RCRATextureScaler
             }
             else if (File.Exists(hdfilename))
                 hdtxt = "hd part found";
-            else if (File.Exists(hdfilename.Replace(".hd.texture", "_hd.texture")))
+            else if (File.Exists(hdfilename!.Replace(".hd.texture", "_hd.texture")))
             {
                 hdfilename = hdfilename.Replace(".hd.texture", "_hd.texture");
                 hdtxt = "found SpiderTex style _hd file";
@@ -145,7 +178,7 @@ namespace RCRATextureScaler
                 hdtxt = "hd part MISSING";
                 hdfilename = "";
             }
-            var arraytxt = Images > 1 ? $"with {Images} packed textures " : "";
+            var arraytxt = Images > 1 ? $"with {ArrayCount} packed {(Cubemaps > 1 ? "cubemaps" : "textures")} " : "";
             output += $"Source {arraytxt}loaded ({hdtxt})\r\n";
 
             if (hdfilename != "")
@@ -154,12 +187,13 @@ namespace RCRATextureScaler
                 if (hdfilesize != HDSize)
                 {
                     output += $"HD component is the wrong size (expected {HDSize} bytes, got {hdfilesize})\r\n";
-                    errorcol = 8;
+                    errorcol = $"HD component is the wrong size (expected {HDSize} bytes, got {hdfilesize})";
                     return false;
                 }
             }
 
-            Ready = errorcol == -1;
+            br.Dispose();
+            Ready = errorcol == "";
             return true;
         }
     }

@@ -13,21 +13,21 @@ namespace RCRATextureScaler
             Name = "Output";
         }
 
-        public override bool Read(out string output, out int errorrow, out int errorcol)
+        public override bool Read(out string output, out int errorrow, out string errorcol)
         {
             // nothing to do
             output = "";
             errorrow = 0;
-            errorcol = -1;
+            errorcol = "";
             Ready = true;
             return true;
         }
 
-        internal void Generate(Source tex, List<DDS> ddss, bool testmode, bool? ignoreformat, uint extrasd, out string output, out int errorrow, out int errorcol)
+        internal void Generate(Source tex, List<DDS> ddss, bool testmode, bool? ignoreformat, uint extrasd, out string output, out int errorrow, out string errorcol)
         {
             output = "";
             errorrow = 0;
-            errorcol = -1;
+            errorcol = "";
 
             // pre-flights
             var dds = ddss[0];
@@ -35,7 +35,7 @@ namespace RCRATextureScaler
             {
                 output += "Replacement image is smaller than source.\r\n";
                 errorrow = 1;
-                errorcol = 1;
+                errorcol = "Replacement image is smaller than source.";
                 return;
             }
 
@@ -43,7 +43,7 @@ namespace RCRATextureScaler
             {
                 output += "Bytes per pixel is different between files, formats are incompatible.\r\n";
                 errorrow = 1;
-                errorcol = 7;
+                errorcol = "Bytes per pixel is different between files, formats are incompatible.";
                 return;
             }
 
@@ -51,7 +51,7 @@ namespace RCRATextureScaler
             {
                 output += "Aspect ratio is different between files.\r\n";
                 errorrow = 1;
-                errorcol = 2;
+                errorcol = "Aspect ratio is different between files.";
                 return;
             }
 
@@ -66,7 +66,7 @@ namespace RCRATextureScaler
                         {
                             output += "Canceled due to DDS format mismatch.\r\n";
                             errorrow = 1;
-                            errorcol = 10;
+                            errorcol = "Canceled due to DDS format mismatch.";
                             return;
                         }
                         break;
@@ -77,7 +77,7 @@ namespace RCRATextureScaler
 
                     case false:
                         // command line only
-                        errorcol = 99;
+                        errorcol = "DDS format mismatch";
                         output += $"DDS format mismatch: {tex.Format} != {dds.Format}";
                         return;
                 }
@@ -94,13 +94,13 @@ namespace RCRATextureScaler
                 {
                     for (int j = 0; j < props.Length; j++)
                     {
-                        var a = dds.GetType().GetProperty(props[j]).GetValue(dds) as uint?;
-                        var b = dds.GetType().GetProperty(props[j]).GetValue(ddss[i]) as uint?;
+                        var a = dds.GetType().GetProperty(props[j])!.GetValue(dds) as uint?;
+                        var b = dds.GetType().GetProperty(props[j])!.GetValue(ddss[i]) as uint?;
                         if (a != b)
                         {
                             output += $"Array image A{i} {props[j]} {b} doesn't match A0 {a}\r\n";
                             errorrow = 1;
-                            errorcol = 1;
+                            errorcol = "Array image doesn't match A0";
                             return;
                         }
                     }
@@ -152,7 +152,7 @@ namespace RCRATextureScaler
                 {
                     output += $"Not enough mipmaps in DDS file {(tex.ArrayCount > 1 ? "A{i} " : " ")}to replace this texture (needs {HDMipmaps + extrasdmipmaps + tex.Mipmaps})\r\n";
                     errorrow = 1;
-                    errorcol = 4;
+                    errorcol = $"Not enough mipmaps in DDS file {(tex.ArrayCount > 1 ? "A{i} " : " ")}to replace this texture (needs {HDMipmaps + extrasdmipmaps + tex.Mipmaps})";
                     return;
                 }
             }
@@ -162,11 +162,11 @@ namespace RCRATextureScaler
             {
                 string fn;
                 if (ddss.Count == 1)
-                    fn = dds.Filename;
+                    fn = dds.Filename!;
                 else
-                    fn = dds.Filename.Substring(0, dds.Filename.Length - ".a0.dds".Length);
+                    fn = dds.Filename!.Substring(0, dds.Filename.Length - ".a0.dds".Length);
 
-                using (var fs = File.Open(ddss[i].Filename, FileMode.Open, FileAccess.Read))
+                using (var fs = File.Open(ddss[i].Filename!, FileMode.Open, FileAccess.Read))
                 using (var br = new BinaryReader(fs))
                 {
                     fs.Seek(ddss[i].dataoffset, SeekOrigin.Begin);
@@ -178,7 +178,7 @@ namespace RCRATextureScaler
 
             if (tex.HDSize > 0)
             {
-                string hdtexturefile = Path.ChangeExtension(Filename, "hd.texture");
+                string hdtexturefile = Path.ChangeExtension(Filename, "hd.texture")!;
                 using (var fs = File.Open(hdtexturefile, FileMode.Create))
                 using (var bw = new BinaryWriter(fs))
                 {
@@ -193,11 +193,19 @@ namespace RCRATextureScaler
             Size += extrasdmipsize;
             if (extrasdmipsize > 0)
             {
-                BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x8);
-                BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x14);
+                if (tex.STG)
+                {
+                    BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x8+16);
+                    BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x14+16);
+                }
+                else
+                {
+                    BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x8);
+                    BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x14);
+                }
             }
 
-            using (var fs = File.Open(Filename, FileMode.Create))
+            using (var fs = File.Open(Filename!, FileMode.Create))
             using (var bw = new BinaryWriter(fs))
             {
                 bw.Write(tex.header);

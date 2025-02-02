@@ -5,7 +5,7 @@ namespace RCRATextureScaler
     public partial class Form1 : Form
     {
         Program program;
-        string lastsourcedir, lastddsdir, lastoutputdir;
+        string lastsourcedir = "", lastddsdir = "", lastoutputdir = "";
 
         public Form1(Program p)
         {
@@ -28,7 +28,7 @@ namespace RCRATextureScaler
                 program.texturestats[1].ArrayCount < program.texturestats[0].ArrayCount)
             {
                 program.texturestats[1].Ready = false;
-                MarkError(1, 6);
+                MarkError(1, "Control Error");
             }
             generatebutton.Enabled = program.texturestats[0].Ready && program.texturestats[1].Ready && program.texturestats[2].Ready;
 
@@ -38,7 +38,7 @@ namespace RCRATextureScaler
                 extrasdctl.Maximum = scale;
                 extrasdctl.Minimum = 0;
                 extrasdctl.Enabled = true;
-                extrasdctl_ValueChanged(null, null);
+                extrasdctl_ValueChanged(this, EventArgs.Empty);
             }
             else
                 extrasdctl.Enabled = false;
@@ -60,7 +60,7 @@ namespace RCRATextureScaler
             ClearErrorRow(dataGridView1.Rows[0]);
             string output;
             int errorrow = 0;
-            int errorcol = -1;
+            string errorcol = "";
 
             this.Text = $"RCRATextureScaler v{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}";
             saveddsbutton.Enabled = false;
@@ -79,7 +79,7 @@ namespace RCRATextureScaler
                 if (obj.Read(out output, out errorrow, out errorcol))
                 {
                     saveddsbutton.Enabled = true;
-                    this.Text = $"{Path.GetFileNameWithoutExtension(Path.GetFileName(obj.Filename))} - RCRATextureScaler v{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
+                    this.Text = $"{Path.GetFileNameWithoutExtension(Path.GetFileName(obj.Filename))} - RCRATextureScaler v{Assembly.GetExecutingAssembly().GetName().Version!.ToString(3)}";
                 }
                 ddsfilenamelabel.Text = Path.GetFileName(Path.ChangeExtension(obj.Filename, (obj.ArrayCount > 1 ? ".Ax.dds" : ".dds")));
                 saveddsbutton.Text = obj.ArrayCount > 1 ? "Save multiple .dds" : "Save as .dds";
@@ -105,8 +105,7 @@ namespace RCRATextureScaler
             savedds.Cubemaps = tex.Cubemaps;
             savedds.Format = tex.Format;
             savedds.basemipsize = tex.basemipsize;
-            byte[] hdmips = null;
-            string output;
+            byte[] hdmips = Array.Empty<byte>();
 
             savedds.HDMipmaps = 0;
             savedds.Width = tex.Width;
@@ -133,7 +132,9 @@ namespace RCRATextureScaler
                 }
             }
 
-            savedds.Write(hdmips, tex.mipmaps, out output);
+            hdmips = hdmips ?? (Array.Empty<byte>());
+
+            savedds.Write(hdmips, tex.mipmaps, out string output);
             outputbox.Text = output;
         }
 
@@ -146,9 +147,8 @@ namespace RCRATextureScaler
             var obj = (DDS)program.texturestats[1];
             obj.ResetVisible();
             ClearErrorRow(dataGridView1.Rows[1]);
-            string output;
             int errorrow = 0;
-            int errorcol = -1;
+            string errorcol = "";
 
             if (f.ShowDialog() == DialogResult.OK)
             {
@@ -156,7 +156,7 @@ namespace RCRATextureScaler
 
                 obj.Filename = f.FileName;
                 lastddsdir = Path.GetDirectoryName(f.FileName) + @"\";
-                obj.Read(out output, out errorrow, out errorcol);
+                obj.Read(out string output, out errorrow, out errorcol);
                 obj.ArrayCount = 1;
                 if (program.texturestats[2].Filename == Output.defaultfilelabel)
                 {
@@ -233,7 +233,7 @@ namespace RCRATextureScaler
             ClearErrorRow(dataGridView1.Rows[2]);
 
             int errorrow;
-            int errorcol;
+            string errorcol;
 
             for (int i = 0; i < 3; i++)
             {
@@ -252,7 +252,7 @@ namespace RCRATextureScaler
                 return;
 
             var ddss = new List<DDS>() { (DDS)(program.texturestats[1]) };
-            var stub = ddss[0].Filename.Substring(0, ddss[0].Filename.Length - ".a0.dds".Length);
+            var stub = ddss[0].Filename![..^".a0.dds".Length];
             for (int i = 1; i < program.texturestats[0].ArrayCount ; i++)
             {
                 ddss.Add(new DDS());
@@ -279,12 +279,14 @@ namespace RCRATextureScaler
             MarkError(errorrow, errorcol);
         }
 
-        private void MarkError(int errorrow, int errorcol)
+        private void MarkError(int errorrow, string errorcol)
         {
-            if (errorcol < 0)
+            if (errorcol.Equals(""))
                 return;
 
-            dataGridView1.Rows[errorrow].Cells[errorcol].ErrorText = "Error";
+
+
+            dataGridView1.Rows[errorrow].Cells[errorcol].ErrorText = errorcol;
         }
 
         private void ClearErrors(DataGridView d)

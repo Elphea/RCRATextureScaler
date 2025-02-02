@@ -1,6 +1,7 @@
 ﻿# Change Log
 
-
+## 1.1.0
+- Adding in Cubemap support for testing from 1.3.2 of Spideytexturescaler
 
 ## 1.0.0
 - Added 1.3.3 functionality from SpideyTextureScaler due to crash issue in RCRA uses (unknown if crashing in Spider games).
