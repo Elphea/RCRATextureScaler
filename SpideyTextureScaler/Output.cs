@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SpideyTextureScaler
+namespace RCRATextureScaler
 {
     internal class Output : TextureBase
     {

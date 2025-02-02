@@ -1,14 +1,11 @@
 ﻿# Change Log
 
-## 1.3.3
 
-### Added
-- Texture IDs for Ratchet & Clank: Rift Apart textures
 
-## 1.3.2
+## 1.0.0
+- Added 1.3.3 functionality from SpideyTextureScaler due to crash issue in RCRA uses (unknown if crashing in Spider games).
 
-### Fixed
-- Allow export of cubemaps to DDS
+## RCRATextureScaler Starts from here
 
 ## 1.3.1
 

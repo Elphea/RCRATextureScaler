@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace SpideyTextureScaler
+namespace RCRATextureScaler
 {
     public partial class Form1 : Form
     {
@@ -19,7 +19,7 @@ namespace SpideyTextureScaler
             ddslabel.DataBindings.Add("Text", p.texturestats[1], nameof(TextureBase.Filename));
             outputlabel.DataBindings.Add("Text", p.texturestats[2], nameof(TextureBase.Filename));
             texturestatsBindingSource.DataSource = program.texturestats;
-            this.Text = $"SpideyTextureScaler v{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
+            this.Text = $"RCRATextureScaler v{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}";
         }
 
         private void UpdateControls()
@@ -62,7 +62,7 @@ namespace SpideyTextureScaler
             int errorrow = 0;
             int errorcol = -1;
 
-            this.Text = $"SpideyTextureScaler v{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
+            this.Text = $"RCRATextureScaler v{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}";
             saveddsbutton.Enabled = false;
             if (f.ShowDialog() == DialogResult.OK)
             {
@@ -79,7 +79,7 @@ namespace SpideyTextureScaler
                 if (obj.Read(out output, out errorrow, out errorcol))
                 {
                     saveddsbutton.Enabled = true;
-                    this.Text = $"{Path.GetFileNameWithoutExtension(Path.GetFileName(obj.Filename))} - SpideyTextureScaler v{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
+                    this.Text = $"{Path.GetFileNameWithoutExtension(Path.GetFileName(obj.Filename))} - RCRATextureScaler v{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
                 }
                 ddsfilenamelabel.Text = Path.GetFileName(Path.ChangeExtension(obj.Filename, (obj.ArrayCount > 1 ? ".Ax.dds" : ".dds")));
                 saveddsbutton.Text = obj.ArrayCount > 1 ? "Save multiple .dds" : "Save as .dds";

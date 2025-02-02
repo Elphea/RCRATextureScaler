@@ -1,4 +1,4 @@
-﻿namespace SpideyTextureScaler
+﻿namespace RCRATextureScaler
 {
     partial class Form1
     {
@@ -86,7 +86,7 @@
             // 
             // bindingSource1
             // 
-            this.bindingSource1.DataSource = typeof(SpideyTextureScaler.Program);
+            this.bindingSource1.DataSource = typeof(RCRATextureScaler.Program);
             // 
             // ddsbutton
             // 
@@ -448,9 +448,9 @@
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.dataGridView1);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.icon")));
             this.Name = "Form1";
-            this.Text = "SpideyTextureScaler";
+            this.Text = "RCRATextureScaler";
             ((System.ComponentModel.ISupportInitialize)(this.bindingSource1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.texturestatsBindingSource)).EndInit();

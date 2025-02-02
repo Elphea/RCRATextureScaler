@@ -3,7 +3,7 @@ using System.CommandLine;
 using System.Runtime.InteropServices;
 using System.Reflection;
 
-namespace SpideyTextureScaler
+namespace RCRATextureScaler
 {
     public class Program
     {
