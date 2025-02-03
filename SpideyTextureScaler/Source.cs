@@ -95,7 +95,7 @@ namespace RCRATextureScaler
             fs.Seek(0, SeekOrigin.Begin);
             if (STG)
             {
-                header = br.ReadBytes((int)offset + 52);
+                header = br.ReadBytes((int)offset + 112);
             }
             else
             {
