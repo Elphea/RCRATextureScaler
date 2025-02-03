@@ -193,8 +193,16 @@ namespace RCRATextureScaler
             Size += extrasdmipsize;
             if (extrasdmipsize > 0)
             {
-                BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x8);
-                BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x14);
+                if (tex.STG)
+                {
+                    BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x8 + 16);
+                    BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x14 + 16);
+                }
+                else
+                {
+                    BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x8);
+                    BitConverter.GetBytes((uint)Size).CopyTo(tex.header, 0x14);
+                }
             }
 
             using (var fs = File.Open(Filename, FileMode.Create))

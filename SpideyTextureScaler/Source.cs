@@ -10,6 +10,7 @@ namespace RCRATextureScaler
     {
         public byte[] header;
         public byte[] textureheader;
+        public bool STG = false;
         public List<byte[]> mipmaps;
         public string hdfilename;
         public bool exportable;
@@ -36,16 +37,43 @@ namespace RCRATextureScaler
 
             using var fs = File.Open(Filename, FileMode.Open, FileAccess.Read);
             using BinaryReader br = new BinaryReader(fs);
-            if (!textureIds.Contains(br.ReadUInt32()) ||
+
+            if (br.ReadUInt32() == 4674643)
+            {
+                STG = true;
+                fs.Seek(16, SeekOrigin.Begin);
+            }
+            else
+            {
+                fs.Seek(0, SeekOrigin.Begin);
+            }
+
+            if (STG)
+            {
+                if (!textureIds.Contains(br.ReadUInt32()) ||
+                fs.Seek(92, SeekOrigin.Current) < 1 ||
+                br.ReadUInt32() != 1145132081 ||
+                !textureIds.Contains(br.ReadUInt32()))
+                {
+                    output += "Not a texture asset.  Please import the lowest resolution copy.\r\n";
+                    errorcol = 1;
+                    return false;
+                }
+                ;
+            }
+            else
+            {
+                if (!textureIds.Contains(br.ReadUInt32()) ||
                 fs.Seek(32, SeekOrigin.Current) < 1 ||
                 br.ReadUInt32() != 1145132081 ||
                 !textureIds.Contains(br.ReadUInt32()))
-            {
-                output += "Not a texture asset.  Please import the lowest resolution copy.\r\n";
-                errorcol = 1;
-                return false;
+                {
+                    output += "Not a texture asset.  Please import the lowest resolution copy.\r\n";
+                    errorcol = 1;
+                    return false;
+                }
+                ;
             }
-            ;
 
             br.ReadUInt32();
             if (br.ReadUInt32() != 1)
@@ -65,10 +93,24 @@ namespace RCRATextureScaler
             var size = br.ReadUInt32();
 
             fs.Seek(0, SeekOrigin.Begin);
-            header = br.ReadBytes((int)offset + 36);
+            if (STG)
+            {
+                header = br.ReadBytes((int)offset + 52);
+            }
+            else
+            {
+                header = br.ReadBytes((int)offset + 36);
+            }
             textureheader = br.ReadBytes((int)size);
 
-            fs.Seek((int)offset + 36, SeekOrigin.Begin);
+            if (STG)
+            {
+                fs.Seek((int)offset + 112, SeekOrigin.Begin);
+            }
+            else
+            {
+                fs.Seek((int)offset + 36, SeekOrigin.Begin);
+            }
             Size = br.ReadUInt32();
             HDSize = br.ReadUInt32();
             HDMipmaps = 0;

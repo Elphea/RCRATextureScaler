@@ -1,6 +1,10 @@
 ﻿# Change Log
 
+## 1.1.1
 
+- Reverted cubemap support. Added STG support.
+
+## 1.1.0 (Defunct)
 
 ## 1.0.0
 - Added 1.3.3 functionality from SpideyTextureScaler due to crash issue in RCRA uses (unknown if crashing in Spider games).
