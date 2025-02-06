@@ -141,13 +141,24 @@ namespace RCRATextureScaler
                 s -= 1 << i;
             }
 
-            BytesPerPixel = Math.Pow(2, (Math.Floor(Math.Log((double)basemipsize / sd_width / sd_height) / Math.Log(2))));
+            
             aspect = (int)(Math.Log((double)Width / (double)Height) / Math.Log(2));
 
             br.ReadByte();
             var channels = br.ReadByte();
             var dxgi_format = br.ReadUInt16();
             Format = (DXGI_FORMAT?)dxgi_format;
+            int formatBits = DDS.BitsPerPixel(Format);
+
+            if (formatBits > 0)
+            {
+                BytesPerPixel = formatBits / 8;
+            }
+            else
+            {
+                BytesPerPixel = Math.Pow(2, (Math.Floor(Math.Log((double)basemipsize / sd_width / sd_height) / Math.Log(2))));
+            }
+
             br.ReadBytes(8);
             if (Mipmaps != br.ReadByte())
             {

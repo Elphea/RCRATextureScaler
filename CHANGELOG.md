@@ -1,5 +1,9 @@
 ﻿# Change Log
 
+## 1.1.2
+
+- Fixed bytesperpixel. It should read correctly with Height * width * bytesperpixel = Size.
+
 ## 1.1.1
 
 - Reverted cubemap support. Added STG support.
