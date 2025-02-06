@@ -1,8 +1,12 @@
 ﻿# Change Log
 
-## 1.1.2
+## 1.1.3
 
 - Fixed bytesperpixel. It should read correctly with Height * width * bytesperpixel = Size.
+
+## 1.1.2
+
+- Fixed STG header error.
 
 ## 1.1.1
 
